@@ -49,12 +49,58 @@ def rotate_about_z(vector, angle):
     """
     return rotate_about_axis(vector, np.array([0, 0, 1]), angle)
     
-def angle_between(vector1, vector2):
+def angle_between(vec1, vec2):
     """ 
     Returns the angle between two vectors in radians
     """
-    assert(vector1.size == vector2.size)
+    assert(vec1.size == vec2.size)
 
-    v1 = vector1 / np.linalg.norm(vector1)
-    v2 = vector2 / np.linalg.norm(vector2)
+    v1 = vec1 / np.linalg.norm(vec1)
+    v2 = vec2 / np.linalg.norm(vec2)
     return np.arccos(v1.dot(v2))
+
+def import_trajectory_file(filename):
+    """
+    Imports a CST trajectory file, may apply filters to the trajectories immediately while importing,
+    returns a list with particle impact trajectories
+    (A list of tuples containing the last and 2nd to last recorded position of each particle, this
+    should be sufficient to approximate the impact position and angle)
+    """
+    raise NotImplementedError
+    raise RuntimeWarning("May use problem specific import filter")
+
+def intersection_with_model(line, model, atol=1e-6):
+    """
+    finds the intersection of a line (list of two points) with the provided model object,
+    returns a tuple consisting of the collision location and the surface normal vector at that position
+    atol defines the maximum distance between line and model to be a valid collision.
+    """
+    raise NotImplementedError
+
+def generate_secondaries(primary, model):
+    """
+    Uses the line defined by the end of a primary trajectory and the model to generate secondary electrons
+    """
+    # Get primary collision information
+    raise NotImplementedError
+
+    # Determine number of secondaries to generate (may have to introduce and artifical upper bound)
+
+    # For each generated secondary:
+
+        # Determine kinetic energy (from random distribution)
+
+
+        # Determine direction (from random distribution)
+
+
+        # Translate to CST compatible dimensions
+
+        # Append to list of secondaries
+
+
+def write_secondary_file(filename):
+    """
+    writes the generated secondary particles to an input file that can be imported into CST
+    """
+    raise NotImplementedError
