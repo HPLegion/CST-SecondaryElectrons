@@ -53,6 +53,8 @@ def angle_between(vector1, vector2):
     """ 
     Returns the angle between two vectors in radians
     """
+    assert(vector1.size == vector2.size)
+
     v1 = vector1 / np.linalg.norm(vector1)
     v2 = vector2 / np.linalg.norm(vector2)
-    return 
+    return np.arccos(v1.dot(v2))

@@ -31,3 +31,7 @@ class TestRotationMethods:
         assert_allclose(rotate_about_axis(ey, ax, np.pi), ex, atol=1.e-8)
         assert_allclose(rotate_about_axis(ez, ax, np.pi/2), (ex-ey)/np.sqrt(2), atol=1.e-8)
 
+def test_angle_between():
+    assert_allclose(angle_between(ex, ey), np.pi/2)
+    assert_allclose(angle_between(ey, ez), np.pi/2)
+    assert_allclose(angle_between(ey+ez, ez), np.pi/4)
