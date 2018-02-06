@@ -109,3 +109,15 @@ class TestIntersectionWithModel():
             coord, norm = intersection_with_model(line, self.mdl)
             assert norm[2] == pytest.approx(np.sin(y))
             assert norm[3] == pytest.approx(np.cos(y))
+
+def test_import_trajectory_file():
+    """Tests the import function"""
+    imp = import_trajectory_file("./test_resources/test_traj.txt")
+    assert len(imp) == 4
+    for x in imp:
+        assert len(x) == 9
+    assert imp[0]["particle_id"] == 0
+    assert imp[3]["time_impact"] == pytest.approx(7.7611890e+02)
+    assert_allclose(imp[2]["pos_impact"], np.array([-9.5142633e-02, 3.9006030e-04, 5.2500004e-01]))
+    assert_allclose(imp[2]["pos_prior"], np.array([-9.4913870e-02, 3.9009575e-04, 5.2436417e-01]))
+    assert_allclose(imp[1]["mom_impact"], np.array([-7.8177312e-04, 9.0218059e-08, 2.1720929e-03]))
