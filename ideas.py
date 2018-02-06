@@ -13,7 +13,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import scipy.constants
 import pandas as pd
-
+PI = np.pi
 #Load FreeCAD
 FREECADPATH = "C:/Anaconda3/pkgs/freecad-0.17-py36_11/Library/bin"
 sys.path.append(FREECADPATH)
@@ -211,6 +211,10 @@ def import_trajectory_file(filename):
     imp_info["pos_prior"] = np.array(pos_prior, dtype=float)
     imp_info["time_impact"] = float(time_impact)
     impacts.append(imp_info)
+    # Transform pos to mm
+    for imp in impacts:
+        imp["pos_impact"] = 1000 * imp["pos_impact"] 
+        imp["pos_prior"] = 1000 * imp["pos_prior"]
     # Return list
     return impacts
 
@@ -219,9 +223,10 @@ def write_secondary_file(filename, particles):
     writes the generated secondary particles to an input file that can be imported into CST
     """
     colnames = ["x", "y", "z", "px", "py", "pz", "mass", "charge", "current"]
-    output = pd.DataFrame(columns=colnames)
-    for par in particles:
-        output = output.append(par, ignore_index=True)
+    output = pd.DataFrame(particles, columns=colnames)
+    # output = pd.DataFrame(columns=colnames)
+    # for par in particles:
+    #     output = output.append(par, ignore_index=True)
     output.to_csv(filename, sep=" ", index=False, header=False)
 
 ######################################################################
@@ -287,8 +292,10 @@ def generate_secondaries(primary, model):
 
     # Determine number of secondaries to generate (may have to introduce and artifical upper bound)
     theta_in = angle_between(primary["mom_impact"], impact_norm)
-    if theta_in > 80/180*np.pi: #Artifically clip impact angle to clip electron yield
-        theta_in = 80/180*np.pi
+    if theta_in > PI/2:
+        theta_in = PI-theta_in
+    if theta_in > 80/180*PI: #Artifically clip impact angle to clip electron yield
+        theta_in = 80/180*PI
     ang_yield = BASE_YIELD/np.cos(theta_in)
     num_el = np.random.poisson(ang_yield) # Number of electrons from poissondist with mean=ang_yield
 
@@ -299,7 +306,7 @@ def generate_secondaries(primary, model):
         e_kin *= scipy.constants.elementary_charge
 
         # Determine direction (from random distribution)
-        phi_out = np.random.uniform(0, 2*np.pi)
+        phi_out = np.random.uniform(0, 2*PI)
         theta_out = np.arcsin(np.random.uniform() - 1) # cos-dist
         # Generate an axis that lies normal to the surface normal
         axis = np.cross(impact_norm, np.array([1, 0, 0])) # Form cross product with x axis
@@ -312,9 +319,41 @@ def generate_secondaries(primary, model):
         direct_out = rotate_about_axis(impact_norm, new_axis, theta_out)
 
         # Translate to CST compatible dimensions
-        electron = generate_electron(impact_coord, direct_out, e_kin)
+        electron = generate_electron(impact_coord/1000, direct_out, e_kin)
 
         # Append to list of secondaries
         secondaries.append(electron)
 
     return secondaries
+
+def main_routine(modelfile, trackfile, outfile):
+    model = load_model(modelfile)
+    particles = import_trajectory_file(trackfile)
+    
+    ##### POTENTIALLY ADD FILTER
+    
+    secondaries = []
+    failed = []
+    total = len(particles)
+    k = 0
+    for par in particles:
+        print("\rParticle", k, "of", total)
+        try:
+            secondaries += generate_secondaries(par, model)
+        except ValueError as error:
+            failed.append(par)
+        k += 1
+
+    for p in failed: print(p["particle_id"], "failed.")
+    write_secondary_file(outfile, secondaries)
+
+MODELFILE = "./sample/block.stp"
+TRACKFILE = "./sample/sample2.txt"
+OUTFILE = "./sample/sec2.pid"
+
+main_routine(MODELFILE, TRACKFILE, OUTFILE)
+
+
+###TODOS
+#Find good fix for factor 1000 in position dimension
+#Double check angle wrapping
