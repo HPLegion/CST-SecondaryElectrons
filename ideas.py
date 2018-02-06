@@ -104,7 +104,7 @@ def create_line(start, stop):
     """
     assert start.shape == (3, ) or start.shape == (1, 3)
     assert stop.shape == (3, ) or stop.shape == (1, 3)
-    assert all(np.not_equal(start, stop)), "Start and stop coordinate should not be identical"
+    assert any(np.not_equal(start, stop)), "Start and stop coordinate should not be identical"
 
     start = tuple(start)
     stop = tuple(stop)
@@ -121,9 +121,11 @@ def intersection_with_model(line, model, atol=1e-6):
     """
     # Find the intersection of the line and the model by using the shortest distance in between
     dist_info = model.Shells[0].distToShape(line)
-    
+
     # Check the minimum distance
     distance = dist_info[0]
+    print(distance)
+    print(atol)
     if distance > atol:
         raise ValueError("No intersection was found using the given tolerance:", atol)
 
@@ -132,10 +134,10 @@ def intersection_with_model(line, model, atol=1e-6):
     if len(inters_vertex) > 1: #Check if there was more than one intersection
         raise ValueError("More than one possible intersection was found.")
     inters_coord = np.array(inters_vertex[0][0]) # Extract coordinates of intersection
-    
+
     # Generate the surface normal vector
     inters_geom = dist_info[2][0] # Extract geometry feature at collision point
-    if inters_geom[0] == b'Face' or inters_geom[0] == "Face" # Assert the collision is on a face
+    if inters_geom[0] == b'Face' or inters_geom[0] == "Face": # Assert the collision is on a face
         face = model.Faces[inters_geom[1]]
         u = inters_geom[2][0]
         v = inters_geom[2][1]
@@ -143,7 +145,7 @@ def intersection_with_model(line, model, atol=1e-6):
         inters_norm = inters_norm/np.linalg.norm(inters_norm) #Normalise normal vector
     else:
         raise ValueError("Did not collide on a face geometry, cannot reconstruct normal vec")
-    
+
     return (inters_coord, inters_norm)
 
 
