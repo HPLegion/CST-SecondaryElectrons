@@ -7,6 +7,7 @@ for particle collisions with model surfaces for CST simulation studio
 import sys
 import numpy as np
 from matplotlib import pyplot as plt
+import warnings
 
 #Load FreeCAD
 FREECADPATH = "C:/Anaconda3/pkgs/freecad-0.17-py36_11/Library/bin"
@@ -88,8 +89,53 @@ def import_trajectory_file(filename):
     (A list of tuples containing the last and 2nd to last recorded position of each particle, this
     should be sufficient to approximate the impact position and angle)
     """
-    raise RuntimeWarning("May use problem specific import filter")
-    raise NotImplementedError
+    warnings.warn("May use problem specific import filter", RuntimeWarning)
+
+    #List of all impact data
+    impacts = []
+
+    with open(filename, 'r') as inp:
+        # Skip 7 rows
+        for dummy in range(7):
+            inp.readline()
+
+        # Process each line in inp
+        last_particle_id = None
+        imp_info = dict()
+        pos_prior = pos_impact = mom_impact = [None, None, None]
+        time_impact = None
+        for line in inp:
+            # Break on empty line(last line)
+            if line == "":
+                break
+            data = line.split()
+
+            # If reached new particle, update constants
+            if data[10] != last_particle_id:
+                #store previous data set
+                if last_particle_id is not None:
+                    imp_info["mom_impact"] = np.array(mom_impact, dtype=float)
+                    imp_info["pos_impact"] = np.array(pos_impact, dtype=float)
+                    imp_info["pos_prior"] = np.array(pos_prior, dtype=float)
+                    imp_info["time_impact"] = float(time_impact)
+                    impacts.append(imp_info)
+                    imp_info = dict()
+
+                # extract new constants
+                imp_info["mass"] = float(data[6])
+                imp_info["charge"] = float(data[7])
+                imp_info["macro_charge"] = float(data[8])
+                imp_info["particle_id"] = int(data[10])
+                imp_info["source_id"] = int(data[11])
+
+                # update last_particle_id
+                last_particle_id = data[10]
+
+            # Save trajectory info
+            pos_prior = pos_impact
+            pos_impact = [data[0], data[1], data[2]]
+            mom_impact = [data[3], data[4], data[5]]
+            time_impact = data[9]
 
 def load_model(filename):
     """
@@ -109,7 +155,6 @@ def create_line(start, stop):
     start = tuple(start)
     stop = tuple(stop)
     return Part.makeLine(start, stop)
-
 
 def intersection_with_model(line, model, atol=1e-6):
     """
