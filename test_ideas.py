@@ -59,3 +59,53 @@ def test_create_line():
     line = create_line(start, stop)
     assert_allclose(np.array(line.firstVertex().Point), start)
     assert_allclose(np.array(line.lastVertex().Point), stop)
+
+def test_load_model():
+    """Loads a test model"""
+    
+    mdl = load_model("./simple_cylinder.stp")
+    assert mdl.Volume == pytest.approx(2*1*np.pi) # Check cylinder volume as simple test
+
+class TestIntersectionWithModel():
+    """
+    Tests the intersection function
+    Based on the model of a cylinder with radius on parallel to x axis
+    reaching from x=-1 to x=1
+    """
+    def __init__(self):
+        self.mdl = load_model("./simple_cylinder.stp")
+
+    def test_no_intersection(self):
+        with pytest.raises(ValueError) as excinfo:
+            line = create_line(np.array([2, 2, 2]), np.array([3, 3, 3]))
+            intersection_with_model(line, self.mdl)
+        assert "No intersection" in str(excinfo.value)
+
+    def test_two_intersections(self):
+        with pytest.raises(ValueError) as excinfo:
+            line = create_line(np.array([0.1, 0.1, -2]), np.array([0.1, 0.1, 2]))
+            intersection_with_model(line, self.mdl)
+        assert "More than one" in str(excinfo.value)
+
+    def test_not_on_face(self):
+        with pytest.raises(ValueError) as excinfo:
+            line = create_line(np.array([1, 0, 2]), np.array([1, 0., 1]))
+            intersection_with_model(line, self.mdl)
+        assert "on a face" in str(excinfo.value)
+
+    def test_collision_coordinate(self):
+        # Test the intersection coordinate for the simple cylinder geometry
+        ys = np.arange(-0.92, 0.92, 0.1)
+        for y in ys:
+            line = create_line(np.array([0, y, 2]), np.array([0, y, 0]))
+            coord, norm = intersection_with_model(line, self.mdl)
+            assert coord[2] == pytest.approx(np.sqrt(1-y**2))
+     
+    def test_collision_normal(self):
+        # Test the intersection normal for the simple cylinder geometry
+        ys = np.arange(-0.92, 0.92, 0.1)
+        for y in ys:
+            line = create_line(np.array([0, y, -2]), np.array([0, y, 0]))
+            coord, norm = intersection_with_model(line, self.mdl)
+            assert norm[2] == pytest.approx(np.sin(y))
+            assert norm[3] == pytest.approx(np.cos(y))
