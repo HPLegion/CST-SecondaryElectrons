@@ -275,19 +275,46 @@ def generate_secondaries(primary, model):
     Uses the line defined by the end of a primary trajectory and the model to generate
     secondary electrons
     """
+    BASE_YIELD = 5
+    TEMP = 10 # eV Electron temperature, i.e. mode of gamma dist
+    secondaries = []
+
     # Get primary collision information
-    raise NotImplementedError
+    impact_loc = primary["pos_prior"]
+    prior_loc = primary["pos_impact"]
+    impact_line = create_line(impact_loc, prior_loc)
+    impact_coord, impact_norm = intersection_with_model(impact_line, model)
 
     # Determine number of secondaries to generate (may have to introduce and artifical upper bound)
+    theta_in = angle_between(primary["mom_impact"], impact_norm)
+    if theta_in > 80/180*np.pi: #Artifically clip impact angle to clip electron yield
+        theta_in = 80/180*np.pi
+    ang_yield = BASE_YIELD/np.cos(theta_in)
+    num_el = np.random.poisson(ang_yield) # Number of electrons from poissondist with mean=ang_yield
 
     # For each generated secondary:
-
+    for k in range(num_el):
         # Determine kinetic energy (from random distribution)
-
+        e_kin = np.random.gamma(2, TEMP) # Gamma Dist with shape 2 and Mode TEMP
+        e_kin *= scipy.constants.elementary_charge
 
         # Determine direction (from random distribution)
-
+        phi_out = np.random.uniform(0, 2*np.pi)
+        theta_out = np.arcsin(np.random.uniform() - 1) # cos-dist
+        # Generate an axis that lies normal to the surface normal
+        axis = np.cross(impact_norm, np.array([1, 0, 0])) # Form cross product with x axis
+        if np.linalg.norm(axis) < 0.1: # For numerical stabilty take cross y axis if norm(axis)<0.1
+            axis = np.cross(impact_norm, np.array([0, 1, 0]))
+        axis = axis/np.linalg.norm(axis)
+        #Rotate the axis around the normal by the random angle phi
+        new_axis = rotate_about_axis(axis, impact_norm, phi_out)
+        #Rotate the normal vector around the new axis to get emission direction
+        direct_out = rotate_about_axis(impact_norm, new_axis, theta_out)
 
         # Translate to CST compatible dimensions
+        electron = generate_electron(impact_coord, direct_out, e_kin)
 
         # Append to list of secondaries
+        secondaries.append(electron)
+
+    return secondaries
