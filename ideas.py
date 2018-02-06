@@ -84,13 +84,11 @@ def angle_between(vec1, vec2):
 
 def import_trajectory_file(filename):
     """
-    Imports a CST trajectory file, may apply filters to the trajectories immediately while
-    importing, returns a list with particle impact trajectories
+    Imports a CST trajectory file
+    returns a list with particle impact trajectories
     (A list of tuples containing the last and 2nd to last recorded position of each particle, this
     should be sufficient to approximate the impact position and angle)
     """
-    warnings.warn("May use problem specific import filter", RuntimeWarning)
-
     #List of all impact data
     impacts = []
 
@@ -107,11 +105,11 @@ def import_trajectory_file(filename):
         for line in inp:
             # Break on empty line(last line)
             if line == "":
-                break
+                    break
+            
             data = line.split()
-
             # If reached new particle, update constants
-            if data[10] != last_particle_id:
+            if data[10] != last_particle_id or line == "":
                 #store previous data set
                 if last_particle_id is not None:
                     imp_info["mom_impact"] = np.array(mom_impact, dtype=float)
@@ -131,11 +129,19 @@ def import_trajectory_file(filename):
                 # update last_particle_id
                 last_particle_id = data[10]
 
-            # Save trajectory info
+            # Cache trajectory for this step and the prior step
             pos_prior = pos_impact
             pos_impact = [data[0], data[1], data[2]]
             mom_impact = [data[3], data[4], data[5]]
             time_impact = data[9]
+    # Store last particle
+    imp_info["mom_impact"] = np.array(mom_impact, dtype=float)
+    imp_info["pos_impact"] = np.array(pos_impact, dtype=float)
+    imp_info["pos_prior"] = np.array(pos_prior, dtype=float)
+    imp_info["time_impact"] = float(time_impact)
+    impacts.append(imp_info)
+    # Return list
+    return impacts
 
 def load_model(filename):
     """
