@@ -125,8 +125,6 @@ def intersection_with_model(line, model, atol=1e-6):
 
     # Check the minimum distance
     distance = dist_info[0]
-    print(distance)
-    print(atol)
     if distance > atol:
         raise ValueError("No intersection was found using the given tolerance:", atol)
 
