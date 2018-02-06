@@ -121,21 +121,26 @@ def intersection_with_model(line, model, atol=1e-6):
     """
     # Find the intersection of the line and the model by using the shortest distance in between
     dist_info = model.Shells[0].distToShape(line)
+    
+    # Check the minimum distance
     distance = dist_info[0]
-    if distance > atol: #Check the minimum distance
+    if distance > atol:
         raise ValueError("No intersection was found using the given tolerance:", atol)
 
+    # Check the intersection vertex
     inters_vertex = dist_info[1]
     if len(inters_vertex) > 1: #Check if there was more than one intersection
         raise ValueError("More than one possible intersection was found.")
     inters_coord = np.array(inters_vertex[0][0]) # Extract coordinates of intersection
     
+    # Generate the surface normal vector
     inters_geom = dist_info[2][0] # Extract geometry feature at collision point
-    if inters_geom[0] == b"Face" or inters_geom[0] == "Face" # Assert the collision is on a face
+    if inters_geom[0] == b'Face' or inters_geom[0] == "Face" # Assert the collision is on a face
         face = model.Faces[inters_geom[1]]
         u = inters_geom[2][0]
         v = inters_geom[2][1]
-        inters_norm = np.array(face.normalAt(u, v))
+        inters_norm = np.array(face.normalAt(u, v)) # Compute the normal vector
+        inters_norm = inters_norm/np.linalg.norm(inters_norm) #Normalise normal vector
     else:
         raise ValueError("Did not collide on a face geometry, cannot reconstruct normal vec")
     
