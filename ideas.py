@@ -10,6 +10,7 @@ for particle collisions with model surfaces for CST simulation studio
 import sys
 import numpy as np
 from matplotlib import pyplot as plt
+import scipy.constants
 
 #Load FreeCAD
 FREECADPATH = "C:/Anaconda3/pkgs/freecad-0.17-py36_11/Library/bin"
@@ -213,11 +214,49 @@ def import_trajectory_file(filename):
     # Return list
     return impacts
 
-def write_secondary_file(filename):
+def write_secondary_file(filename, particles):
     """
     writes the generated secondary particles to an input file that can be imported into CST
     """
     raise NotImplementedError
+
+######################################################################
+###Secondary Generation
+######################################################################
+def generate_particle(start, direction, kin_energy, charge, macro_charge, mass):
+    """
+    Generates a dictionary with particle properties as required by CST, input needs SI Units
+    Direction can be a unitless vector of any length, it will be normalised
+    """
+    C_0 = scipy.constants.speed_of_light
+    particle = dict()
+    particle["mass"] = mass
+    particle["charge"] = charge
+    particle["macro_charge"] = macro_charge
+    particle["x"] = start[0]
+    particle["y"] = start[1]
+    particle["z"] = start[2]
+    #Compute momentum
+    rest_energy = mass * C_0**2
+    tot_energy = kin_energy + rest_energy
+    abs_momentum = sqrt(tot_energy**2 - rest_energy**2)/C_0
+    normed_momentum = abs_momentum / mass / C_0
+    direc = direction / np.linalg.norm(direction)
+    particle["px"] = normed_momentum * direc[0]
+    particle["py"] = normed_momentum * direc[1]
+    particle["pz"] = normed_momentum * direc[2]
+    return particle
+
+def generate_electron(start, direction, kin_energy, macro_charge=None):
+    """
+    Generates a dictionary with electron properties as required by CST, input needs SI Units
+    Direction can be a unitless vector of any length, it will be normalised
+    """
+    q_e = -1*scipy.constants.elementary_charge
+    m_e = scipy.constants.electron_mass
+    if macro_charge is None:
+        macro_charge = charge
+    return generate_particle(start, direction, kin_energy, q_e, macro_charge, m_e)
 
 def generate_secondaries(primary, model):
     """
@@ -240,4 +279,3 @@ def generate_secondaries(primary, model):
         # Translate to CST compatible dimensions
 
         # Append to list of secondaries
-
