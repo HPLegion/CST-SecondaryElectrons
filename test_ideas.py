@@ -62,7 +62,7 @@ def test_create_line():
 
 def test_load_model():
     """Loads a test model"""
-    
+
     mdl = load_model("./test_resources/simple_cylinder.stp")
     assert mdl.Volume == pytest.approx(2*1*np.pi) # Check cylinder volume as simple test
 
@@ -99,7 +99,7 @@ class TestIntersectionWithModel():
             line = create_line(np.array([0, y, 2]), np.array([0, y, 0]))
             coord, norm = intersection_with_model(line, self.mdl)
             assert coord[2] == pytest.approx(np.sqrt(1-y**2))
-     
+
     def test_collision_normal(self):
         # Test the intersection normal for the simple cylinder geometry
         ys = np.arange(-0.92, 0.92, 0.1)
@@ -154,7 +154,7 @@ def test_generate_electron():
     assert par["charge"] == pytest.approx(1.60217662e-19)
     assert par["current"] == pytest.approx(1.60217662e-19)
     assert par["mass"] == pytest.approx(9.10938356e-31)
- 
+
 def test_write_secondary_file():
     """Test the output routine"""
     C_0 = 299792458
