@@ -239,7 +239,7 @@ def generate_particle(start, direction, kin_energy, charge, macro_charge, mass):
     #Compute momentum
     rest_energy = mass * C_0**2
     tot_energy = kin_energy + rest_energy
-    abs_momentum = sqrt(tot_energy**2 - rest_energy**2)/C_0
+    abs_momentum = np.sqrt(tot_energy**2 - rest_energy**2)/C_0
     normed_momentum = abs_momentum / mass / C_0
     direc = direction / np.linalg.norm(direction)
     particle["px"] = normed_momentum * direc[0]
@@ -255,7 +255,7 @@ def generate_electron(start, direction, kin_energy, macro_charge=None):
     q_e = -1*scipy.constants.elementary_charge
     m_e = scipy.constants.electron_mass
     if macro_charge is None:
-        macro_charge = charge
+        macro_charge = q_e
     return generate_particle(start, direction, kin_energy, q_e, macro_charge, m_e)
 
 def generate_secondaries(primary, model):
