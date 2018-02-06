@@ -7,7 +7,6 @@ for particle collisions with model surfaces for CST simulation studio
 import sys
 import numpy as np
 from matplotlib import pyplot as plt
-import warnings
 
 #Load FreeCAD
 FREECADPATH = "C:/Anaconda3/pkgs/freecad-0.17-py36_11/Library/bin"
@@ -105,8 +104,8 @@ def import_trajectory_file(filename):
         for line in inp:
             # Break on empty line(last line)
             if line == "":
-                    break
-            
+                break
+
             data = line.split()
             # If reached new particle, update constants
             if data[10] != last_particle_id or line == "":
@@ -230,3 +229,4 @@ def write_secondary_file(filename):
     writes the generated secondary particles to an input file that can be imported into CST
     """
     raise NotImplementedError
+    
