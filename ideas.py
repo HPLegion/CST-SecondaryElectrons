@@ -2,6 +2,9 @@
 This document contains a collection of functions to help with the creation of secondary electrons
 for particle collisions with model surfaces for CST simulation studio
 """
+######################################################################
+###Import Statements
+######################################################################
 
 # Trivial import statements
 import sys
@@ -17,6 +20,10 @@ except ModuleNotFoundError:
     print("Could not find the FreeCAD module. Check the FREECADPATH variable!")
     print("Current path is:", FREECADPATH)
     exit()
+
+######################################################################
+###Coordinate Transformations and Vector Geometry
+######################################################################
 
 def rotate_about_axis(vector, axis, angle):
     """
@@ -81,6 +88,70 @@ def angle_between(vec1, vec2):
     v2 = vec2 / np.linalg.norm(vec2)
     return np.arccos(v1.dot(v2))
 
+######################################################################
+###FreeCAD interfacing methods
+######################################################################
+
+def load_model(filename):
+    """
+    Loads a CAD model using the FreeCAD Library. Returns a reference to the FreeCAD.Part object
+    """
+    return Part.read(filename)
+
+def create_line(start, stop):
+    """
+    Creates and returns a FreeCAD line from a given set of start and stop coordinates
+    Expects start and stop to be numpy arrays
+    """
+    assert start.shape == (3, ) or start.shape == (1, 3)
+    assert stop.shape == (3, ) or stop.shape == (1, 3)
+    assert any(np.not_equal(start, stop)), "Start and stop coordinate should not be identical"
+
+    start = tuple(start)
+    stop = tuple(stop)
+    return Part.makeLine(start, stop)
+
+def intersection_with_model(line, model, atol=1e-6):
+    """
+    !!!ONLY USE WITH SIMPLE CAD MODELS FOR NOW!!!
+    Finds the intersection of a FreeCAD line object with the provided model object
+    Returns a tuple consisting of the collision location and the surface normal vector at that
+    position
+    atol defines the maximum distance between line and model to be a valid collision.
+    """
+    # Find the intersection of the line and the model by using the shortest distance in between
+    dist_info = model.Shells[0].distToShape(line)
+
+    # Check the minimum distance
+    distance = dist_info[0]
+    print(distance)
+    print(atol)
+    if distance > atol:
+        raise ValueError("No intersection was found using the given tolerance:", atol)
+
+    # Check the intersection vertex
+    inters_vertex = dist_info[1]
+    if len(inters_vertex) > 1: #Check if there was more than one intersection
+        raise ValueError("More than one possible intersection was found.")
+    inters_coord = np.array(inters_vertex[0][0]) # Extract coordinates of intersection
+
+    # Generate the surface normal vector
+    inters_geom = dist_info[2][0] # Extract geometry feature at collision point
+    if inters_geom[0] == b'Face' or inters_geom[0] == "Face": # Assert the collision is on a face
+        face = model.Faces[inters_geom[1]]
+        u = inters_geom[2][0]
+        v = inters_geom[2][1]
+        inters_norm = np.array(face.normalAt(u, v)) # Compute the normal vector
+        inters_norm = inters_norm/np.linalg.norm(inters_norm) #Normalise normal vector
+    else:
+        raise ValueError("Did not collide on a face geometry, cannot reconstruct normal vec")
+
+    return (inters_coord, inters_norm)
+
+######################################################################
+###CST Import Export
+######################################################################
+
 def import_trajectory_file(filename):
     """
     Imports a CST trajectory file
@@ -142,64 +213,11 @@ def import_trajectory_file(filename):
     # Return list
     return impacts
 
-def load_model(filename):
+def write_secondary_file(filename):
     """
-    Loads a CAD model using the FreeCAD Library. Returns a reference to the FreeCAD.Part object
+    writes the generated secondary particles to an input file that can be imported into CST
     """
-    return Part.read(filename)
-
-def create_line(start, stop):
-    """
-    Creates and returns a FreeCAD line from a given set of start and stop coordinates
-    Expects start and stop to be numpy arrays
-    """
-    assert start.shape == (3, ) or start.shape == (1, 3)
-    assert stop.shape == (3, ) or stop.shape == (1, 3)
-    assert any(np.not_equal(start, stop)), "Start and stop coordinate should not be identical"
-
-    start = tuple(start)
-    stop = tuple(stop)
-    return Part.makeLine(start, stop)
-
-def intersection_with_model(line, model, atol=1e-6):
-    """
-    !!!ONLY USE WITH SIMPLE CAD MODELS FOR NOW!!!
-    Finds the intersection of a FreeCAD line object with the provided model object
-    Returns a tuple consisting of the collision location and the surface normal vector at that
-    position
-    atol defines the maximum distance between line and model to be a valid collision.
-    """
-    # Find the intersection of the line and the model by using the shortest distance in between
-    dist_info = model.Shells[0].distToShape(line)
-
-    # Check the minimum distance
-    distance = dist_info[0]
-    print(distance)
-    print(atol)
-    if distance > atol:
-        raise ValueError("No intersection was found using the given tolerance:", atol)
-
-    # Check the intersection vertex
-    inters_vertex = dist_info[1]
-    if len(inters_vertex) > 1: #Check if there was more than one intersection
-        raise ValueError("More than one possible intersection was found.")
-    inters_coord = np.array(inters_vertex[0][0]) # Extract coordinates of intersection
-
-    # Generate the surface normal vector
-    inters_geom = dist_info[2][0] # Extract geometry feature at collision point
-    if inters_geom[0] == b'Face' or inters_geom[0] == "Face": # Assert the collision is on a face
-        face = model.Faces[inters_geom[1]]
-        u = inters_geom[2][0]
-        v = inters_geom[2][1]
-        inters_norm = np.array(face.normalAt(u, v)) # Compute the normal vector
-        inters_norm = inters_norm/np.linalg.norm(inters_norm) #Normalise normal vector
-    else:
-        raise ValueError("Did not collide on a face geometry, cannot reconstruct normal vec")
-
-    return (inters_coord, inters_norm)
-
-
-
+    raise NotImplementedError
 
 def generate_secondaries(primary, model):
     """
@@ -223,10 +241,3 @@ def generate_secondaries(primary, model):
 
         # Append to list of secondaries
 
-
-def write_secondary_file(filename):
-    """
-    writes the generated secondary particles to an input file that can be imported into CST
-    """
-    raise NotImplementedError
-    
