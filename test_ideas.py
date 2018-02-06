@@ -72,8 +72,7 @@ class TestIntersectionWithModel():
     Based on the model of a cylinder with radius on parallel to x axis
     reaching from x=-1 to x=1
     """
-    def __init__(self):
-        self.mdl = load_model("./test_resources/simple_cylinder.stp")
+    mdl = load_model("./test_resources/simple_cylinder.stp")
 
     def test_no_intersection(self):
         with pytest.raises(ValueError) as excinfo:
@@ -105,10 +104,11 @@ class TestIntersectionWithModel():
         # Test the intersection normal for the simple cylinder geometry
         ys = np.arange(-0.92, 0.92, 0.1)
         for y in ys:
-            line = create_line(np.array([0, y, -2]), np.array([0, y, 0]))
+            line = create_line(np.array([0, y, 2]), np.array([0, y, 0]))
             coord, norm = intersection_with_model(line, self.mdl)
-            assert norm[2] == pytest.approx(np.sin(y))
-            assert norm[3] == pytest.approx(np.cos(y))
+            print(norm)
+            assert norm[1] == pytest.approx(y)
+            assert norm[2] == pytest.approx(np.sqrt(1-y**2))
 
 def test_import_trajectory_file():
     """Tests the import function"""
