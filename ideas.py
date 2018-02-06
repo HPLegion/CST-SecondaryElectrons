@@ -27,7 +27,7 @@ def rotate_about_axis(vector, axis, angle):
     vector and axis should be numpy arrays of length 3
     """
     # Perform a check that vector and axis have the right dimensions
-    assert vector.shape == (3, ) or vector.shape == (1, 3) 
+    assert vector.shape == (3, ) or vector.shape == (1, 3)
     assert axis.shape == (3, ) or axis.shape == (1, 3)
 
     # Compute helper values
@@ -74,7 +74,7 @@ def angle_between(vec1, vec2):
     Returns the angle between two vectors in radians
     """
     # Perform a check that vector and axis have the right dimensions
-    assert vec1.shape == (3, ) or vec1.shape == (1, 3) 
+    assert vec1.shape == (3, ) or vec1.shape == (1, 3)
     assert vec2.shape == (3, ) or vec2.shape == (1, 3)
 
     v1 = vec1 / np.linalg.norm(vec1)
@@ -104,7 +104,7 @@ def create_line(start, stop):
     """
     assert start.shape == (3, ) or start.shape == (1, 3)
     assert stop.shape == (3, ) or stop.shape == (1, 3)
-    assert all(np.not_equal(start,stop)), "Start and stop coordinate should not be identical"
+    assert all(np.not_equal(start, stop)), "Start and stop coordinate should not be identical"
 
     start = tuple(start)
     stop = tuple(stop)
@@ -113,12 +113,36 @@ def create_line(start, stop):
 
 def intersection_with_model(line, model, atol=1e-6):
     """
+    !!!ONLY USE WITH SIMPLE CAD MODELS FOR NOW!!!
     Finds the intersection of a FreeCAD line object with the provided model object
     Returns a tuple consisting of the collision location and the surface normal vector at that
     position
     atol defines the maximum distance between line and model to be a valid collision.
     """
-    raise NotImplementedError
+    # Find the intersection of the line and the model by using the shortest distance in between
+    dist_info = model.Shells[0].distToShape(line)
+    distance = dist_info[0]
+    if distance > atol: #Check the minimum distance
+        raise ValueError("No intersection was found using the given tolerance:", atol)
+
+    inters_vertex = dist_info[1]
+    if len(inters_vertex) > 1: #Check if there was more than one intersection
+        raise ValueError("More than one possible intersection was found.")
+    inters_coord = np.array(inters_vertex[0][0]) # Extract coordinates of intersection
+    
+    inters_geom = dist_info[2][0] # Extract geometry feature at collision point
+    if inters_geom[0] == b"Face" or inters_geom[0] == "Face" # Assert the collision is on a face
+        face = model.Faces[inters_geom[1]]
+        u = inters_geom[2][0]
+        v = inters_geom[2][1]
+        inters_norm = np.array(face.normalAt(u, v))
+    else:
+        raise ValueError("Did not collide on a face geometry, cannot reconstruct normal vec")
+    
+    return (inters_coord, inters_norm)
+
+
+
 
 def generate_secondaries(primary, model):
     """
