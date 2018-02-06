@@ -1,4 +1,18 @@
+#Trivial import statements
 import numpy as np
+import sys
+from matplotlib import pyplot as plt
+
+#Load FreeCAD
+FREECADPATH = "C:/Anaconda3/pkgs/freecad-0.17-py36_11/Library/bin"
+sys.path.append(FREECADPATH)
+try:
+    from FreeCAD import Part
+except ModuleNotFoundError:
+    print("Could not find the FreeCAD module. Check the FREECADPATH variable!")
+    print("Current path is:", FREECADPATH)
+    exit()
+
 def rotate_about_axis(vector, axis, angle):
     """
     Rotate a vector around a given axis (rooted at origin) and angle (in radian)
@@ -68,6 +82,13 @@ def import_trajectory_file(filename):
     """
     raise NotImplementedError
     raise RuntimeWarning("May use problem specific import filter")
+
+def load_model(filename):
+    """
+    Loads a CAD model using the FreeCAD Library. Returns a reference to the FreeCAD.Part object
+    """
+    return Part.read(filename)
+
 
 def intersection_with_model(line, model, atol=1e-6):
     """
