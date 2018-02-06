@@ -8,6 +8,7 @@ for particle collisions with model surfaces for CST simulation studio
 
 # Trivial import statements
 import sys
+import warnings
 import numpy as np
 from matplotlib import pyplot as plt
 import scipy.constants
@@ -221,10 +222,11 @@ def write_secondary_file(filename, particles):
 ######################################################################
 ###Secondary Generation
 ######################################################################
-def generate_particle(start, direction, kin_energy, charge, macro_charge, mass):
+def generate_particle(start, direction, kin_energy, charge, macro_charge, mass, relativistic=False):
     """
     Generates a dictionary with particle properties as required by CST, input needs SI Units
     Direction can be a unitless vector of any length, it will be normalised
+    relativistic should not be used for low energies as floating point errors may be induced
     """
     C_0 = scipy.constants.speed_of_light
     particle = dict()
@@ -236,8 +238,14 @@ def generate_particle(start, direction, kin_energy, charge, macro_charge, mass):
     particle["z"] = start[2]
     #Compute momentum
     rest_energy = mass * C_0**2
-    tot_energy = kin_energy + rest_energy
-    abs_momentum = np.sqrt(tot_energy**2 - rest_energy**2)/C_0
+    if kin_energy > 0.1 * rest_energy and not relativistic:
+        warnings.warn("Using non relativistic calculation for particles with E_kin > 10% E_mass",
+                      UserWarning)
+    if relativistic:
+        tot_energy = kin_energy + rest_energy
+        abs_momentum = np.sqrt(tot_energy**2 - rest_energy**2)/C_0
+    else:
+        abs_momentum = np.sqrt(2*mass*kin_energy)
     normed_momentum = abs_momentum / mass / C_0
     direc = direction / np.linalg.norm(direction)
     particle["px"] = normed_momentum * direc[0]
@@ -245,16 +253,17 @@ def generate_particle(start, direction, kin_energy, charge, macro_charge, mass):
     particle["pz"] = normed_momentum * direc[2]
     return particle
 
-def generate_electron(start, direction, kin_energy, macro_charge=None):
+def generate_electron(start, direction, kin_energy, macro_charge=None, relativistic=False):
     """
     Generates a dictionary with electron properties as required by CST, input needs SI Units
     Direction can be a unitless vector of any length, it will be normalised
+    relativistic should not be used for low energies as floating point errors may be induced
     """
     q_e = -1*scipy.constants.elementary_charge
     m_e = scipy.constants.electron_mass
     if macro_charge is None:
         macro_charge = q_e
-    return generate_particle(start, direction, kin_energy, q_e, macro_charge, m_e)
+    return generate_particle(start, direction, kin_energy, q_e, macro_charge, m_e, relativistic)
 
 def generate_secondaries(primary, model):
     """
@@ -277,3 +286,11 @@ def generate_secondaries(primary, model):
         # Translate to CST compatible dimensions
 
         # Append to list of secondaries
+C_0 = 299792458
+start = np.array([1, 2, 3])
+direction = np.array([3, 4, 12]) #Length 13
+kin_energy = 13**2/2.0
+mass = 1
+charge = -1
+macro_charge = -2
+par = generate_particle(start, direction, kin_energy, charge, macro_charge, mass)
