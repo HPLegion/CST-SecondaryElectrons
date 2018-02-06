@@ -221,9 +221,8 @@ def write_secondary_file(filename, particles):
     colnames = ["x", "y", "z", "px", "py", "pz", "mass", "charge", "current"]
     output = pd.DataFrame(columns=colnames)
     for par in particles:
-        output.append(par)
+        output = output.append(par, ignore_index=True)
     output.to_csv(filename, sep=" ", index=False, header=False)
-
 
 ######################################################################
 ###Secondary Generation
