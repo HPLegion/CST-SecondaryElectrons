@@ -12,6 +12,7 @@ import warnings
 import numpy as np
 from matplotlib import pyplot as plt
 import scipy.constants
+import pandas as pd
 
 #Load FreeCAD
 FREECADPATH = "C:/Anaconda3/pkgs/freecad-0.17-py36_11/Library/bin"
@@ -217,12 +218,15 @@ def write_secondary_file(filename, particles):
     """
     writes the generated secondary particles to an input file that can be imported into CST
     """
-    raise NotImplementedError
+    [xSI, ySI, zSI, pxREL, pyREL, pzREL, mSI, chargeSI, currentSI]
+    colnames = ["x", "y", "z", "px", "py", "pz", "mass", "charge", "current"]
+    pd.DataFrame()
+
 
 ######################################################################
 ###Secondary Generation
 ######################################################################
-def generate_particle(start, direction, kin_energy, charge, macro_charge, mass, relativistic=False):
+def generate_particle(start, direction, kin_energy, charge, current, mass, relativistic=False):
     """
     Generates a dictionary with particle properties as required by CST, input needs SI Units
     Direction can be a unitless vector of any length, it will be normalised
@@ -232,7 +236,7 @@ def generate_particle(start, direction, kin_energy, charge, macro_charge, mass, 
     particle = dict()
     particle["mass"] = mass
     particle["charge"] = charge
-    particle["macro_charge"] = macro_charge
+    particle["current"] = current
     particle["x"] = start[0]
     particle["y"] = start[1]
     particle["z"] = start[2]
@@ -253,7 +257,7 @@ def generate_particle(start, direction, kin_energy, charge, macro_charge, mass, 
     particle["pz"] = normed_momentum * direc[2]
     return particle
 
-def generate_electron(start, direction, kin_energy, macro_charge=None, relativistic=False):
+def generate_electron(start, direction, kin_energy, current=None, relativistic=False):
     """
     Generates a dictionary with electron properties as required by CST, input needs SI Units
     Direction can be a unitless vector of any length, it will be normalised
@@ -261,9 +265,9 @@ def generate_electron(start, direction, kin_energy, macro_charge=None, relativis
     """
     q_e = -1*scipy.constants.elementary_charge
     m_e = scipy.constants.electron_mass
-    if macro_charge is None:
-        macro_charge = q_e
-    return generate_particle(start, direction, kin_energy, q_e, macro_charge, m_e, relativistic)
+    if current is None:
+        current = q_e
+    return generate_particle(start, direction, kin_energy, q_e, current, m_e, relativistic)
 
 def generate_secondaries(primary, model):
     """
@@ -286,4 +290,3 @@ def generate_secondaries(primary, model):
         # Translate to CST compatible dimensions
 
         # Append to list of secondaries
-        

@@ -130,11 +130,11 @@ def test_generate_particle():
     kin_energy = 13**2/2.0
     mass = 1
     charge = -1
-    macro_charge = -2
-    par = generate_particle(start, direction, kin_energy, charge, macro_charge, mass)
+    current = -2
+    par = generate_particle(start, direction, kin_energy, charge, current, mass)
     assert par["mass"] == mass
     assert par["charge"] == charge
-    assert par["macro_charge"] == macro_charge
+    assert par["current"] == current
     assert par["x"] == start[0]
     assert par["y"] == start[1]
     assert par["z"] == start[2]
@@ -143,7 +143,7 @@ def test_generate_particle():
     assert C_0*par["pz"] == pytest.approx(12)
     #Test high energy warning
     with pytest.warns(UserWarning):
-        generate_particle(start, direction, C_0**2, charge, macro_charge, mass)
+        generate_particle(start, direction, C_0**2, charge, current, mass)
 
 def test_generate_electron():
     """Test the electron generation basics"""
@@ -152,5 +152,6 @@ def test_generate_electron():
     kin_energy = 13**2/2.0
     par = generate_electron(start, direction, kin_energy)
     assert par["charge"] == pytest.approx(1.60217662e-19)
-    assert par["macro_charge"] == pytest.approx(1.60217662e-19)
+    assert par["current"] == pytest.approx(1.60217662e-19)
     assert par["mass"] == pytest.approx(9.10938356e-31)
+    
