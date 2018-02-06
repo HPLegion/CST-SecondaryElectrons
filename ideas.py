@@ -218,9 +218,11 @@ def write_secondary_file(filename, particles):
     """
     writes the generated secondary particles to an input file that can be imported into CST
     """
-    [xSI, ySI, zSI, pxREL, pyREL, pzREL, mSI, chargeSI, currentSI]
     colnames = ["x", "y", "z", "px", "py", "pz", "mass", "charge", "current"]
-    pd.DataFrame()
+    output = pd.DataFrame(columns=colnames)
+    for par in particles:
+        output.append(par)
+    output.to_csv(filename, sep=" ", index=False, header=False)
 
 
 ######################################################################
