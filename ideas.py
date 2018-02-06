@@ -286,11 +286,4 @@ def generate_secondaries(primary, model):
         # Translate to CST compatible dimensions
 
         # Append to list of secondaries
-C_0 = 299792458
-start = np.array([1, 2, 3])
-direction = np.array([3, 4, 12]) #Length 13
-kin_energy = 13**2/2.0
-mass = 1
-charge = -1
-macro_charge = -2
-par = generate_particle(start, direction, kin_energy, charge, macro_charge, mass)
+        
