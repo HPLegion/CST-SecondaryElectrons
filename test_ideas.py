@@ -63,7 +63,7 @@ def test_create_line():
 def test_load_model():
     """Loads a test model"""
     
-    mdl = load_model("./simple_cylinder.stp")
+    mdl = load_model("./test_resources/simple_cylinder.stp")
     assert mdl.Volume == pytest.approx(2*1*np.pi) # Check cylinder volume as simple test
 
 class TestIntersectionWithModel():
@@ -73,7 +73,7 @@ class TestIntersectionWithModel():
     reaching from x=-1 to x=1
     """
     def __init__(self):
-        self.mdl = load_model("./simple_cylinder.stp")
+        self.mdl = load_model("./test_resources/simple_cylinder.stp")
 
     def test_no_intersection(self):
         with pytest.raises(ValueError) as excinfo:
