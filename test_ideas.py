@@ -121,3 +121,36 @@ def test_import_trajectory_file():
     assert_allclose(imp[2]["pos_impact"], np.array([-9.5142633e-02, 3.9006030e-04, 5.2500004e-01]))
     assert_allclose(imp[2]["pos_prior"], np.array([-9.4913870e-02, 3.9009575e-04, 5.2436417e-01]))
     assert_allclose(imp[1]["mom_impact"], np.array([-7.8177312e-04, 9.0218059e-08, 2.1720929e-03]))
+
+def test_generate_particle():
+    """Tests the CST-style particle generation function"""
+    C_0 = 299792458
+    start = np.array([1, 2, 3])
+    direction = np.array([3, 4, 12]) #Length 13
+    kin_energy = 13**2/2.0
+    mass = 1
+    charge = -1
+    macro_charge = -2
+    par = generate_particle(start, direction, kin_energy, charge, macro_charge, mass)
+    assert par["mass"] == mass
+    assert par["charge"] == charge
+    assert par["macro_charge"] == macro_charge
+    assert par["x"] == start[0]
+    assert par["y"] == start[1]
+    assert par["z"] == start[2]
+    assert C_0*par["px"] == pytest.approx(3)
+    assert C_0*par["py"] == pytest.approx(4)
+    assert C_0*par["pz"] == pytest.approx(12)
+    #Test high energy warning
+    with pytest.warns(UserWarning):
+        generate_particle(start, direction, C_0**2, charge, macro_charge, mass)
+
+def test_generate_electron():
+    """Test the electron generation basics"""
+    start = np.array([1, 2, 3])
+    direction = np.array([3, 4, 12]) #Length 13
+    kin_energy = 13**2/2.0
+    par = generate_electron(start, direction, kin_energy)
+    assert par["charge"] == pytest.approx(1.60217662e-19)
+    assert par["macro_charge"] == pytest.approx(1.60217662e-19)
+    assert par["mass"] == pytest.approx(9.10938356e-31)
