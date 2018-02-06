@@ -348,8 +348,8 @@ def main_routine(modelfile, trackfile, outfile):
     write_secondary_file(outfile, secondaries)
 
 MODELFILE = "./sample/block.stp"
-TRACKFILE = "./sample/sample2.txt"
-OUTFILE = "./sample/sec2.pid"
+TRACKFILE = "./sample/sample3.txt"
+OUTFILE = "./sample/sec3.pid"
 
 main_routine(MODELFILE, TRACKFILE, OUTFILE)
 
