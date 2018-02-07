@@ -118,8 +118,8 @@ def test_import_trajectory_file():
         assert len(x) == 9
     assert imp[0]["particle_id"] == 0
     assert imp[3]["time_impact"] == pytest.approx(7.7611890e+02)
-    assert_allclose(imp[2]["pos_impact"], np.array([-9.5142633e-02, 3.9006030e-04, 5.2500004e-01]))
-    assert_allclose(imp[2]["pos_prior"], np.array([-9.4913870e-02, 3.9009575e-04, 5.2436417e-01]))
+    assert_allclose(imp[2]["pos_impact"], 1000*np.array([-9.5142633e-02, 3.9006030e-04, 5.2500004e-01]))
+    assert_allclose(imp[2]["pos_prior"], 1000*np.array([-9.4913870e-02, 3.9009575e-04, 5.2436417e-01]))
     assert_allclose(imp[1]["mom_impact"], np.array([-7.8177312e-04, 9.0218059e-08, 2.1720929e-03]))
 
 def test_generate_particle():
@@ -168,5 +168,5 @@ def test_write_secondary_file():
     par2 = generate_particle(start, direction, kin_energy, charge, current, 2*mass)
     write_secondary_file("./test_resources/temp.txt", [par, par2])
     with open("./test_resources/temp.txt") as f:
-        assert f.readline() == "1.0 2.0 3.0 1.0006922855944563e-08 1.3342563807926083e-08 4.002769142377825e-08 1.0 -1.0 -2.0\n"
-        assert f.readline() == "1.0 2.0 3.0 7.075963010249053e-09 9.434617346998737e-09 2.8303852040996212e-08 2.0 -1.0 -2.0\n"
+        assert f.readline() == "0.001 0.002 0.003 1.0006922855944563e-08 1.3342563807926083e-08 4.002769142377825e-08 1 -1 -2\n"
+        assert f.readline() == "0.001 0.002 0.003 7.075963010249053e-09 9.434617346998737e-09 2.8303852040996212e-08 2 -1 -2\n"
