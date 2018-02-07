@@ -366,25 +366,55 @@ def main_routine(modelfile, trackfile, outfile):
     model = load_model(modelfile)
     particles = import_trajectory_file(trackfile)
     
-    ##### POTENTIALLY ADD FILTER
+    particles_filtered = []
+    for par in particles:
+        if par['pos_impact'][2] < 10:
+            particles_filtered.append(par)
+    particles = particles_filtered
     
     secondaries = []
     failed = []
     total = len(particles)
-    k = 0
+    k = 1
     for par in particles:
         print("\rParticle", k, "of", total)
         try:
-            secondaries += generate_secondaries(par, model)
+            secondaries += generate_secondaries(par, model, BASE_YIELD=9)
         except ValueError as error:
-            failed.append(par)
+            failed.append(par, error.args)
         k += 1
 
     for p in failed: print(p["particle_id"], "failed.")
     write_secondary_file(outfile, secondaries)
 
-MODELFILE = "./sample/block.stp"
-TRACKFILE = "./sample/sample3.txt"
-OUTFILE = "./sample/sec3.pid"
+def visual_benchmark(modelfile, trackfile):
+    model = load_model(modelfile)
+    particles = import_trajectory_file(trackfile)
+    
+    secondaries = []
+    failed = []
+    for par in particles:
+        try:
+            secondaries += generate_secondaries(par, model, BASE_YIELD=9)
+        except ValueError as error:
+            failed.append(par)
+
+   # for p in failed: print(p["particle_id"], "failed.")
+    print(len(secondaries), "secondaries generated", len(failed), "primary particles did not collide")
+    angles = []
+    for s in secondaries:
+        direc = np.array([s["px"], s["py"], s["pz"]])
+        angles.append(angle_between(direc, np.array([0, 0, 1])))
+    plt.hist(angles, bins=50, density=True)
+    plt.show()
+
+# MODELFILE = "./sample/simple_cylinder.stp"
+# TRACKFILE = "./sample/cyl.txt"
+# OUTFILE = "./sample/sec_cyl.pid"
+
+MODELFILE = "M:/HANNES CST FILES/GriddedLensTest/mesh_big.stp"
+TRACKFILE = "M:/HANNES CST FILES/GriddedLensTest/prim.txt"
+OUTFILE = "M:/HANNES CST FILES/GriddedLensTest/sec.pid"
 
 main_routine(MODELFILE, TRACKFILE, OUTFILE)
+#visual_benchmark(MODELFILE, TRACKFILE)
