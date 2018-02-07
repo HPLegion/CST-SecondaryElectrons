@@ -27,6 +27,11 @@ except ModuleNotFoundError:
 ######################################################################
 ###Coordinate Transformations and Vector Geometry
 ######################################################################
+def normalise(vec):
+    """
+    Normalises a vector using the numpy linalg norm function
+    """
+    return vec/np.linalg.norm(vec)
 
 def rotate_about_axis(vector, axis, angle):
     """
@@ -42,13 +47,13 @@ def rotate_about_axis(vector, axis, angle):
 
     # Compute helper values
     phi = angle / 2
-    norm_ax = axis / np.linalg.norm(axis)
+    axis = normalise(axis)
 
     # Compute Euler Rodrigues parameters
     a = np.cos(phi)
-    b = np.sin(phi) * norm_ax[0]
-    c = np.sin(phi) * norm_ax[1]
-    d = np.sin(phi) * norm_ax[2]
+    b = np.sin(phi) * axis[0]
+    c = np.sin(phi) * axis[1]
+    d = np.sin(phi) * axis[2]
 
     # Compose rotation matrix
     rot_mat = np.array([[a*a+b*b-c*c-d*d, 2*(b*c-a*d), 2*(b*d+a*c)],
@@ -87,9 +92,9 @@ def angle_between(vec1, vec2):
     assert vec1.shape == (3, ) or vec1.shape == (1, 3)
     assert vec2.shape == (3, ) or vec2.shape == (1, 3)
 
-    v1 = vec1 / np.linalg.norm(vec1)
-    v2 = vec2 / np.linalg.norm(vec2)
-    return np.arccos(v1.dot(v2))
+    vec1 = normalise(vec1)
+    vec2 = normalise(vec2)
+    return np.arccos(vec1.dot(vec2))
 
 ######################################################################
 ###FreeCAD interfacing methods
@@ -143,7 +148,7 @@ def intersection_with_model(line, model, atol=1e-6):
         u = inters_geom[2][0]
         v = inters_geom[2][1]
         inters_norm = np.array(face.normalAt(u, v)) # Compute the normal vector
-        inters_norm = inters_norm/np.linalg.norm(inters_norm) #Normalise normal vector
+        inters_norm = normalise(inters_norm) #Normalise normal vector
     else:
         raise ValueError("Did not collide on a face geometry, cannot reconstruct normal vec")
 
@@ -224,14 +229,39 @@ def write_secondary_file(filename, particles):
     """
     colnames = ["x", "y", "z", "px", "py", "pz", "mass", "charge", "current"]
     output = pd.DataFrame(particles, columns=colnames)
-    # output = pd.DataFrame(columns=colnames)
-    # for par in particles:
-    #     output = output.append(par, ignore_index=True)
+    output.x = output.x / 1000 #Adjust spatial dimensions from mm to m
+    output.y = output.y / 1000
+    output.z = output.z / 1000
     output.to_csv(filename, sep=" ", index=False, header=False)
 
 ######################################################################
 ###Secondary Generation
 ######################################################################
+
+def out_direction(normal, theta, phi):
+    """
+    A helper function that computes the output direction given a surface normal vector,
+    an emission angle theta, and a polar angle phi.
+    The polar coordinate has no guaranteed zero-location in this function! It assumes that the
+    polar orientation will be uniformely random, and that hence the zero-loc does not matter!
+    """
+    EX = np.array([1, 0, 0])
+    EY = np.array([0, 1, 0])
+    normal = normalise(normal)
+
+    # Generate an axis that lies in the plane orthogonal to the surface normal
+    # Form cross product with x axis
+    axis = np.cross(normal, EX)
+    # For numerical stabilty take cross y axis if norm(axis)<0.1, i.e. normal almost parallel to x
+    if np.linalg.norm(axis) < 0.1: axis = np.cross(normal, EY)
+    axis = normalise(axis)
+
+    #Rotate the axis around the normal by the random angle phi
+    rotated_axis = rotate_about_axis(axis, normal, phi)
+    #Rotate the normal vector around the new axis to get emission direction
+    direct_out = rotate_about_axis(normal, rotated_axis, theta)
+    return direct_out
+
 def generate_particle(start, direction, kin_energy, charge, current, mass, relativistic=False):
     """
     Generates a dictionary with particle properties as required by CST, input needs SI Units
@@ -257,10 +287,10 @@ def generate_particle(start, direction, kin_energy, charge, current, mass, relat
     else:
         abs_momentum = np.sqrt(2*mass*kin_energy)
     normed_momentum = abs_momentum / mass / C_0
-    direc = direction / np.linalg.norm(direction)
-    particle["px"] = normed_momentum * direc[0]
-    particle["py"] = normed_momentum * direc[1]
-    particle["pz"] = normed_momentum * direc[2]
+    direction = normalise(direction)
+    particle["px"] = normed_momentum * direction[0]
+    particle["py"] = normed_momentum * direction[1]
+    particle["pz"] = normed_momentum * direction[2]
     return particle
 
 def generate_electron(start, direction, kin_energy, current=None, relativistic=False):
@@ -275,14 +305,16 @@ def generate_electron(start, direction, kin_energy, current=None, relativistic=F
         current = q_e
     return generate_particle(start, direction, kin_energy, q_e, current, m_e, relativistic)
 
-def generate_secondaries(primary, model):
+def generate_secondaries(primary, model, BASE_YIELD = 5, TEMP = 10):
     """
     Uses the line defined by the end of a primary trajectory and the model to generate
     secondary electrons
+    primary: impacting particle
+    model: the freecad part
+    BASEYIELD: mean number of generated electrons for normal incidence
+    TEMP: in eV Electron temperature, i.e. mode of gamma distribution
     """
-    BASE_YIELD = 5
-    TEMP = 10 # eV Electron temperature, i.e. mode of gamma dist
-    secondaries = []
+    secondaries = [] # Collection of the secondary electrons
 
     # Get primary collision information
     impact_loc = primary["pos_prior"]
@@ -290,14 +322,16 @@ def generate_secondaries(primary, model):
     impact_line = create_line(impact_loc, prior_loc)
     impact_coord, impact_norm = intersection_with_model(impact_line, model)
 
-    # Determine number of secondaries to generate (may have to introduce and artifical upper bound)
+    # Determine number of secondaries to generate
+    # (may have to introduce and artifical upper bound)
     theta_in = angle_between(primary["mom_impact"], impact_norm)
-    if theta_in > PI/2:
-        theta_in = PI-theta_in
-    if theta_in > 80/180*PI: #Artifically clip impact angle to clip electron yield
-        theta_in = 80/180*PI
+    # wrap theta_in to angles smaller than pi/2 (if vectors were showing in opposite directions)
+    if theta_in > PI/2: theta_in = PI-theta_in
+    #Artifically clip impact angle to clip electron yield
+    if theta_in > 80/180*PI: theta_in = 80/180*PI
     ang_yield = BASE_YIELD/np.cos(theta_in)
-    num_el = np.random.poisson(ang_yield) # Number of electrons from poissondist with mean=ang_yield
+    # Number of electrons from poissondist with mean=ang_yield
+    num_el = np.random.poisson(ang_yield)
 
     # For each generated secondary:
     for k in range(num_el):
@@ -308,18 +342,20 @@ def generate_secondaries(primary, model):
         # Determine direction (from random distribution)
         phi_out = np.random.uniform(0, 2*PI)
         theta_out = np.arcsin(np.random.uniform() - 1) # cos-dist
-        # Generate an axis that lies normal to the surface normal
-        axis = np.cross(impact_norm, np.array([1, 0, 0])) # Form cross product with x axis
-        if np.linalg.norm(axis) < 0.1: # For numerical stabilty take cross y axis if norm(axis)<0.1
-            axis = np.cross(impact_norm, np.array([0, 1, 0]))
-        axis = axis/np.linalg.norm(axis)
-        #Rotate the axis around the normal by the random angle phi
-        new_axis = rotate_about_axis(axis, impact_norm, phi_out)
-        #Rotate the normal vector around the new axis to get emission direction
-        direct_out = rotate_about_axis(impact_norm, new_axis, theta_out)
+        direct_out = out_direction(impact_norm, theta_out, phi_out)
+        # # Generate an axis that lies normal to the surface normal
+        # # Form cross product with x axis
+        # axis = np.cross(impact_norm, np.array([1, 0, 0]))
+        # # For numerical stabilty take cross y axis if norm(axis)<0.1
+        # if np.linalg.norm(axis) < 0.1: axis = np.cross(impact_norm, np.array([0, 1, 0]))
+        # axis = normalise(axis)
+        # #Rotate the axis around the normal by the random angle phi
+        # rotated_axis = rotate_about_axis(axis, impact_norm, phi_out)
+        # #Rotate the normal vector around the new axis to get emission direction
+        # direct_out = rotate_about_axis(impact_norm, rotated_axis, theta_out)
 
         # Translate to CST compatible dimensions
-        electron = generate_electron(impact_coord/1000, direct_out, e_kin)
+        electron = generate_electron(impact_coord, direct_out, e_kin)
 
         # Append to list of secondaries
         secondaries.append(electron)
@@ -352,8 +388,3 @@ TRACKFILE = "./sample/sample3.txt"
 OUTFILE = "./sample/sec3.pid"
 
 main_routine(MODELFILE, TRACKFILE, OUTFILE)
-
-
-###TODOS
-#Find good fix for factor 1000 in position dimension
-#Double check angle wrapping
