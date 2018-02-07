@@ -8,6 +8,14 @@ ex = np.array([1, 0, 0])
 ey = np.array([0, 1, 0])
 ez = np.array([0, 0, 1])
 
+def test_normalise():
+    """Test the vector normalisation funcion"""
+    for k in range(10):
+        n = np.random.randint(1,10)
+        vec = np.random.random(n)
+        vec = normalise(vec)
+        assert np.linalg.norm(vec) == pytest.approx(1)
+
 class TestRotationFunctions:
     """
     Contains tests for the rotation functions
