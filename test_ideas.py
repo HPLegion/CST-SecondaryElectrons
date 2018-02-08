@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.testing import assert_allclose
-from ideas import *
+from secondary_electrons import *
 import pytest
 
 # Some useful vectors for testing geometry issues
