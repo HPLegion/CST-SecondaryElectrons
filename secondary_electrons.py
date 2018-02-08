@@ -364,7 +364,9 @@ def filter_particles(particles):
     """
     particles_filtered = []
     for par in particles:
-        if par['pos_impact'][2] < 10:
+        if (par['pos_impact'][2] < 10 and
+                -15 < par['pos_impact'][0] < 15 and
+                -15 < par['pos_impact'][1] < 15):
             particles_filtered.append(par)
     return particles_filtered
 
@@ -431,13 +433,13 @@ def visual_benchmark(modelfile, trackfile):
     plt.hist(angles, bins=50, density=True)
     plt.show()
 
-MODELFILE = "./sample/simple_cylinder.stp"
-TRACKFILE = "./sample/cyl.txt"
-OUTFILE = "./sample/sec_cyl.pid"
+# MODELFILE = "./sample/simple_cylinder.stp"
+# TRACKFILE = "./sample/cyl.txt"
+# OUTFILE = "./sample/sec_cyl.pid"
 
-# MODELFILE = "M:/HANNES CST FILES/GriddedLensTest/mesh_big.stp"
-# TRACKFILE = "M:/HANNES CST FILES/GriddedLensTest/prim_test.txt"
-# OUTFILE = "M:/HANNES CST FILES/GriddedLensTest/sec.pid"
+MODELFILE = "M:/HANNES CST FILES/GriddedLensTest/mesh_big.stp"
+TRACKFILE = "M:/HANNES CST FILES/GriddedLensTest/prim_10mm.txt"
+OUTFILE = "M:/HANNES CST FILES/GriddedLensTest/sec_10mm.pid"
 
-#main_routine(MODELFILE, TRACKFILE, OUTFILE)
+main_routine(MODELFILE, TRACKFILE, OUTFILE)
 #visual_benchmark(MODELFILE, TRACKFILE)
