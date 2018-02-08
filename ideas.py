@@ -218,7 +218,7 @@ def import_trajectory_file(filename):
     impacts.append(imp_info)
     # Transform pos to mm
     for imp in impacts:
-        imp["pos_impact"] = 1000 * imp["pos_impact"] 
+        imp["pos_impact"] = 1000 * imp["pos_impact"]
         imp["pos_prior"] = 1000 * imp["pos_prior"]
     # Return list
     return impacts
@@ -305,21 +305,19 @@ def generate_electron(start, direction, kin_energy, current=None, relativistic=F
         current = q_e
     return generate_particle(start, direction, kin_energy, q_e, current, m_e, relativistic)
 
-def generate_secondaries(primary, model, BASE_YIELD = 5, TEMP = 10):
+def generate_secondaries(primary, model, base_yield=5, temperature=10):
     """
     Uses the line defined by the end of a primary trajectory and the model to generate
     secondary electrons
     primary: impacting particle
     model: the freecad part
     BASEYIELD: mean number of generated electrons for normal incidence
-    TEMP: in eV Electron temperature, i.e. mode of gamma distribution
+    temperature: in eV Electron temperature, i.e. mode of gamma distribution
     """
     secondaries = [] # Collection of the secondary electrons
 
     # Get primary collision information
-    impact_loc = primary["pos_prior"]
-    prior_loc = primary["pos_impact"]
-    impact_line = create_line(impact_loc, prior_loc)
+    impact_line = create_line(primary["pos_prior"], primary["pos_impact"])
     impact_coord, impact_norm = intersection_with_model(impact_line, model)
 
     # Determine number of secondaries to generate
@@ -329,30 +327,21 @@ def generate_secondaries(primary, model, BASE_YIELD = 5, TEMP = 10):
     if theta_in > PI/2: theta_in = PI-theta_in
     #Artifically clip impact angle to clip electron yield
     if theta_in > 80/180*PI: theta_in = 80/180*PI
-    ang_yield = BASE_YIELD/np.cos(theta_in)
+    #Scale base yield depending on impact angle
+    ang_yield = base_yield/np.cos(theta_in)
     # Number of electrons from poissondist with mean=ang_yield
     num_el = np.random.poisson(ang_yield)
 
     # For each generated secondary:
-    for k in range(num_el):
+    for _ in range(num_el):
         # Determine kinetic energy (from random distribution)
-        e_kin = np.random.gamma(2, TEMP) # Gamma Dist with shape 2 and Mode TEMP
+        e_kin = np.random.gamma(2, temperature) # Gamma Dist with shape 2 and Mode at temperature
         e_kin *= scipy.constants.elementary_charge
 
         # Determine direction (from random distribution)
         phi_out = np.random.uniform(0, 2*PI)
         theta_out = np.arcsin(np.random.uniform() - 1) # cos-dist
         direct_out = out_direction(impact_norm, theta_out, phi_out)
-        # # Generate an axis that lies normal to the surface normal
-        # # Form cross product with x axis
-        # axis = np.cross(impact_norm, np.array([1, 0, 0]))
-        # # For numerical stabilty take cross y axis if norm(axis)<0.1
-        # if np.linalg.norm(axis) < 0.1: axis = np.cross(impact_norm, np.array([0, 1, 0]))
-        # axis = normalise(axis)
-        # #Rotate the axis around the normal by the random angle phi
-        # rotated_axis = rotate_about_axis(axis, impact_norm, phi_out)
-        # #Rotate the normal vector around the new axis to get emission direction
-        # direct_out = rotate_about_axis(impact_norm, rotated_axis, theta_out)
 
         # Translate to CST compatible dimensions
         electron = generate_electron(impact_coord, direct_out, e_kin)
@@ -362,42 +351,63 @@ def generate_secondaries(primary, model, BASE_YIELD = 5, TEMP = 10):
 
     return secondaries
 
-def main_routine(modelfile, trackfile, outfile):
-    model = load_model(modelfile)
-    particles = import_trajectory_file(trackfile)
-    
+######################################################################
+###Eval Routines
+######################################################################
+
+def filter_particles(particles):
+    """
+    Function to include usefull filter statements for the primary particle list to remove this
+    logic from other routines
+    Filter Criteria may change arbitrarily depending on the scenario under investigation
+    Takes a list of particles and returns a list of particles passing the filters
+    """
     particles_filtered = []
     for par in particles:
         if par['pos_impact'][2] < 10:
             particles_filtered.append(par)
-    particles = particles_filtered
-    
+    return particles_filtered
+
+def main_routine(modelfile, trackfile, outfile):
+    """The main routine managing the import, secondary creation and export"""
+    model = load_model(modelfile)
+    particles = import_trajectory_file(trackfile)
+    num_inp_par = len(particles)
+    particles = filter_particles(particles)
+
     secondaries = []
     failed = []
     total = len(particles)
     k = 1
     for par in particles:
-        print("\rParticle", k, "of", total)
         try:
-            secondaries += generate_secondaries(par, model, BASE_YIELD=9)
+            secondaries += generate_secondaries(par, model, base_yield=9)
         except ValueError as error:
-            failed.append(par, error.args)
+            failed.append(par)
+            print("Particle ID:", par["particle_id"], error.args)
+        print("Progress", k, "of", total, "primaries processed")
         k += 1
 
-    for p in failed: print(p["particle_id"], "failed.")
+    print(num_inp_par, "primary particles imported")
+    print(len(particles), "primary particles after filtering")
+    print(len(failed), "filtered primaries did not collide")
+    print(len(secondaries), "secondaries generated")
+
     write_secondary_file(outfile, secondaries)
 
 def visual_benchmark(modelfile, trackfile):
     model = load_model(modelfile)
     particles = import_trajectory_file(trackfile)
-    
+    particles = filter_particles(particles)
+
     secondaries = []
     failed = []
     for par in particles:
         try:
-            secondaries += generate_secondaries(par, model, BASE_YIELD=9)
+            secondaries += generate_secondaries(par, model, base_yield=9)
         except ValueError as error:
             failed.append(par)
+            print(par["particle_id"], error.args)
 
    # for p in failed: print(p["particle_id"], "failed.")
     print(len(secondaries), "secondaries generated", len(failed), "primary particles did not collide")
@@ -408,13 +418,13 @@ def visual_benchmark(modelfile, trackfile):
     plt.hist(angles, bins=50, density=True)
     plt.show()
 
-# MODELFILE = "./sample/simple_cylinder.stp"
-# TRACKFILE = "./sample/cyl.txt"
-# OUTFILE = "./sample/sec_cyl.pid"
+MODELFILE = "./sample/simple_cylinder.stp"
+TRACKFILE = "./sample/cyl.txt"
+OUTFILE = "./sample/sec_cyl.pid"
 
-MODELFILE = "M:/HANNES CST FILES/GriddedLensTest/mesh_big.stp"
-TRACKFILE = "M:/HANNES CST FILES/GriddedLensTest/prim.txt"
-OUTFILE = "M:/HANNES CST FILES/GriddedLensTest/sec.pid"
+# MODELFILE = "M:/HANNES CST FILES/GriddedLensTest/mesh_big.stp"
+# TRACKFILE = "M:/HANNES CST FILES/GriddedLensTest/prim_test.txt"
+# OUTFILE = "M:/HANNES CST FILES/GriddedLensTest/sec.pid"
 
 #main_routine(MODELFILE, TRACKFILE, OUTFILE)
-visual_benchmark(MODELFILE, TRACKFILE)
+#visual_benchmark(MODELFILE, TRACKFILE)
