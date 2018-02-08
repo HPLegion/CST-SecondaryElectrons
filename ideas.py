@@ -396,21 +396,34 @@ def main_routine(modelfile, trackfile, outfile):
     write_secondary_file(outfile, secondaries)
 
 def visual_benchmark(modelfile, trackfile):
+    """
+    Function for implementing quick visual checks of the secondary distribtuion
+    subject to usecase changes
+    """
     model = load_model(modelfile)
     particles = import_trajectory_file(trackfile)
+    num_inp_par = len(particles)
     particles = filter_particles(particles)
 
     secondaries = []
     failed = []
+    total = len(particles)
+    k = 1
     for par in particles:
         try:
             secondaries += generate_secondaries(par, model, base_yield=9)
         except ValueError as error:
             failed.append(par)
-            print(par["particle_id"], error.args)
+            print("Particle ID:", par["particle_id"], error.args)
+        print("Progress", k, "of", total, "primaries processed")
+        k += 1
 
-   # for p in failed: print(p["particle_id"], "failed.")
-    print(len(secondaries), "secondaries generated", len(failed), "primary particles did not collide")
+   
+    print(num_inp_par, "primary particles imported")
+    print(len(particles), "primary particles after filtering")
+    print(len(failed), "filtered primaries did not collide")
+    print(len(secondaries), "secondaries generated")
+
     angles = []
     for s in secondaries:
         direc = np.array([s["px"], s["py"], s["pz"]])
