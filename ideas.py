@@ -19,7 +19,7 @@ FREECADPATH = "C:/Anaconda3/pkgs/freecad-0.17-py36_11/Library/bin"
 sys.path.append(FREECADPATH)
 try:
     from FreeCAD import Part
-except ModuleNotFoundError:
+except ImportError:
     print("Could not find the FreeCAD module. Check the FREECADPATH variable!")
     print("Current path is:", FREECADPATH)
     exit()
@@ -416,5 +416,5 @@ MODELFILE = "M:/HANNES CST FILES/GriddedLensTest/mesh_big.stp"
 TRACKFILE = "M:/HANNES CST FILES/GriddedLensTest/prim.txt"
 OUTFILE = "M:/HANNES CST FILES/GriddedLensTest/sec.pid"
 
-main_routine(MODELFILE, TRACKFILE, OUTFILE)
-#visual_benchmark(MODELFILE, TRACKFILE)
+#main_routine(MODELFILE, TRACKFILE, OUTFILE)
+visual_benchmark(MODELFILE, TRACKFILE)
