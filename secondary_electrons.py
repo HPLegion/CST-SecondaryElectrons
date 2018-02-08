@@ -437,9 +437,9 @@ def visual_benchmark(modelfile, trackfile):
 # TRACKFILE = "./sample/cyl.txt"
 # OUTFILE = "./sample/sec_cyl.pid"
 
-MODELFILE = "M:/HANNES CST FILES/GriddedLensTest/mesh_big.stp"
-TRACKFILE = "M:/HANNES CST FILES/GriddedLensTest/prim_10mm.txt"
-OUTFILE = "M:/HANNES CST FILES/GriddedLensTest/sec_10mm.pid"
+MODELFILE = "M:/HANNES CST FILES/GriddedLensTest/mesh_big_3mm.stp"
+TRACKFILE = "M:/HANNES CST FILES/GriddedLensTest/prim_3mm.txt"
+OUTFILE = "M:/HANNES CST FILES/GriddedLensTest/sec_3mm.pid"
 
 main_routine(MODELFILE, TRACKFILE, OUTFILE)
 #visual_benchmark(MODELFILE, TRACKFILE)
