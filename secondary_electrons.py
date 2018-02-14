@@ -244,28 +244,36 @@ def write_secondary_file(filename, particles):
 ###Secondary Generation
 ######################################################################
 
-def out_direction(normal, theta, phi):
+def out_direction(surf_norm, impact_dir, theta, phi):
     """
-    A helper function that computes the output direction given a surface normal vector,
+    A helper function that computes the output direction given a surface nromal vector,
     an emission angle theta, and a polar angle phi.
     The polar coordinate has no guaranteed zero-location in this function! It assumes that the
     polar orientation will be uniformely random, and that hence the zero-loc does not matter!
     """
     EX = np.array([1, 0, 0])
     EY = np.array([0, 1, 0])
-    normal = normalise(normal)
+    surf_norm = normalise(surf_norm)
+    impact_dir = normalise(impact_dir)
 
     # Generate an axis that lies in the plane orthogonal to the surface normal
-    # Form cross product with x axis
-    axis = np.cross(normal, EX)
-    # For numerical stabilty take cross y axis if norm(axis)<0.1, i.e. normal almost parallel to x
-    if np.linalg.norm(axis) < 0.1: axis = np.cross(normal, EY)
+    # If there is more than 1deg between surf_norm and impact_dir, use their common rotation axis
+    # In this case phi==0 corresponds to the plane spanned by impact_dir and surf_normal
+    if pi/180 < angle_between(surf_norm, impact_dir, force_acute=True):
+        axis = np.cross(surf_norm, impact_dir)
+    # Else (if impact_dir is basically parallel to surf_norm) find a random axis
+    else:
+        vec = np.random.rand(1,3)
+        # Make sure there is a decent angle between the random vector and surf_norm
+        while pi/180 > angle_between(surf_norm, vec, force_acute=True):
+            vec = np.random.rand(1,3)
+        axis = np.cross(surf_norm, vec)
     axis = normalise(axis)
 
-    #Rotate the axis around the normal by the random angle phi
-    rotated_axis = rotate_about_axis(axis, normal, phi)
-    #Rotate the normal vector around the new axis to get emission direction
-    direct_out = rotate_about_axis(normal, rotated_axis, theta)
+    #Rotate the axis around the surf_norm by the random angle phi
+    rotated_axis = rotate_about_axis(axis, surf_norm, phi)
+    #Rotate the surf_norm vector around the new axis to get emission direction
+    direct_out = rotate_about_axis(surf_norm, rotated_axis, theta)
     return direct_out
 
 def generate_particle(start, direction, kin_energy, charge, current, mass, relativistic=False):
@@ -324,12 +332,12 @@ def generate_secondaries(primary, model, base_yield=5, temperature=10):
 
     # Get primary collision information
     impact_line = create_line(primary["pos_prior"], primary["pos_impact"])
-    impact_coord, impact_norm = intersection_with_model(impact_line, model)
+    impact_coord, surf_norm = intersection_with_model(impact_line, model)
 
     # Determine number of secondaries to generate
     # (may have to introduce an artifical upper bound)
     # wrap theta_in to angles smaller than pi/2 (if vectors were showing in opposite directions)
-    theta_in = angle_between(primary["mom_impact"], impact_norm, force_acute=True)
+    theta_in = angle_between(primary["mom_impact"], surf_norm, force_acute=True)
     #Artifically clip impact angle to clip electron yield
     if theta_in > 80/180*PI: theta_in = 80/180*PI
     #Scale base yield depending on impact angle
@@ -346,7 +354,7 @@ def generate_secondaries(primary, model, base_yield=5, temperature=10):
         # Determine direction (from random distribution)
         phi_out = np.random.uniform(0, 2*PI)
         theta_out = np.arcsin(np.random.uniform() - 1) # cos-dist
-        direct_out = out_direction(impact_norm, theta_out, phi_out)
+        direct_out = out_direction(surf_norm, primary["mom_impact"], theta_out, phi_out)
 
         # Translate to CST compatible dimensions
         electron = generate_electron(impact_coord, direct_out, e_kin)
