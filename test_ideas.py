@@ -54,6 +54,8 @@ def test_angle_between():
     assert_allclose(angle_between(ex, ey), np.pi/2)
     assert_allclose(angle_between(ey, ez), np.pi/2)
     assert_allclose(angle_between(ey+ez, ez), np.pi/4)
+    assert_allclose(angle_between(ey+ez, -1*ez, force_acute=True), np.pi/4)
+    assert_allclose(angle_between(ey+ez, -1*ez, force_acute=False), 3*np.pi/4)
 
 def test_create_line():
     """Tests the create_line function"""

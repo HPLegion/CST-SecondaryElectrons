@@ -84,9 +84,11 @@ def rotate_about_z(vector, angle):
     """
     return rotate_about_axis(vector, np.array([0, 0, 1]), angle)
 
-def angle_between(vec1, vec2):
+def angle_between(vec1, vec2, force_acute=False):
     """
     Returns the angle between two vectors in radians
+    If force_acute is set to True, the angles are folded into the interval [0,pi/2],
+    i.e. alpha>pi/2 ==> pi-alpha
     """
     # Perform a check that vector and axis have the right dimensions
     assert vec1.shape == (3, ) or vec1.shape == (1, 3)
@@ -94,7 +96,11 @@ def angle_between(vec1, vec2):
 
     vec1 = normalise(vec1)
     vec2 = normalise(vec2)
-    return np.arccos(vec1.dot(vec2))
+    phi = np.arccos(vec1.dot(vec2))
+    if force_acute and phi > PI/2:
+        phi = PI - phi
+    return phi
+
 
 ######################################################################
 ###FreeCAD interfacing methods
@@ -321,10 +327,9 @@ def generate_secondaries(primary, model, base_yield=5, temperature=10):
     impact_coord, impact_norm = intersection_with_model(impact_line, model)
 
     # Determine number of secondaries to generate
-    # (may have to introduce and artifical upper bound)
-    theta_in = angle_between(primary["mom_impact"], impact_norm)
+    # (may have to introduce an artifical upper bound)
     # wrap theta_in to angles smaller than pi/2 (if vectors were showing in opposite directions)
-    if theta_in > PI/2: theta_in = PI-theta_in
+    theta_in = angle_between(primary["mom_impact"], impact_norm, force_acute=True)
     #Artifically clip impact angle to clip electron yield
     if theta_in > 80/180*PI: theta_in = 80/180*PI
     #Scale base yield depending on impact angle
@@ -437,9 +442,9 @@ def visual_benchmark(modelfile, trackfile):
 # TRACKFILE = "./sample/cyl.txt"
 # OUTFILE = "./sample/sec_cyl.pid"
 
-MODELFILE = "M:/HANNES CST FILES/GriddedLensTest/mesh_big_3mm.stp"
-TRACKFILE = "M:/HANNES CST FILES/GriddedLensTest/prim_3mm.txt"
-OUTFILE = "M:/HANNES CST FILES/GriddedLensTest/sec_3mm.pid"
+# MODELFILE = "M:/HANNES CST FILES/GriddedLensTest/mesh_big_3mm.stp"
+# TRACKFILE = "M:/HANNES CST FILES/GriddedLensTest/prim_3mm.txt"
+# OUTFILE = "M:/HANNES CST FILES/GriddedLensTest/sec_3mm.pid"
 
-main_routine(MODELFILE, TRACKFILE, OUTFILE)
-#visual_benchmark(MODELFILE, TRACKFILE)
+# main_routine(MODELFILE, TRACKFILE, OUTFILE)
+# #visual_benchmark(MODELFILE, TRACKFILE)
