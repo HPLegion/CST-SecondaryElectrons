@@ -251,22 +251,20 @@ def out_direction(surf_norm, impact_dir, theta, phi):
     The polar coordinate has no guaranteed zero-location in this function! It assumes that the
     polar orientation will be uniformely random, and that hence the zero-loc does not matter!
     """
-    EX = np.array([1, 0, 0])
-    EY = np.array([0, 1, 0])
     surf_norm = normalise(surf_norm)
     impact_dir = normalise(impact_dir)
 
     # Generate an axis that lies in the plane orthogonal to the surface normal
     # If there is more than 1deg between surf_norm and impact_dir, use their common rotation axis
     # In this case phi==0 corresponds to the plane spanned by impact_dir and surf_normal
-    if pi/180 < angle_between(surf_norm, impact_dir, force_acute=True):
+    if PI/180 < angle_between(surf_norm, impact_dir, force_acute=True):
         axis = np.cross(surf_norm, impact_dir)
     # Else (if impact_dir is basically parallel to surf_norm) find a random axis
     else:
-        vec = np.random.rand(1,3)
+        vec = np.random.rand(1, 3)
         # Make sure there is a decent angle between the random vector and surf_norm
-        while pi/180 > angle_between(surf_norm, vec, force_acute=True):
-            vec = np.random.rand(1,3)
+        while PI/180 > angle_between(surf_norm, vec, force_acute=True):
+            vec = np.random.rand(1, 3)
         axis = np.cross(surf_norm, vec)
     axis = normalise(axis)
 
